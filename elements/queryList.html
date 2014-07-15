@@ -1,0 +1,51 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="queryDetails.html">
+
+<polymer-element name="query-list">
+  <template>
+    <style>
+    :host {
+      display: block;
+      width: 100%;
+    }
+
+    #headers {
+      display: flex;
+      font-family: Arial;
+      font-size: 10pt;
+      width: 90%;
+      font-weight: bold;
+    }
+    #owner {
+      flex: 2;
+    }
+    #subject {
+      flex: 10;
+    }
+    .rightCol {
+      width: 80px;
+    }
+
+    </style>
+
+    <div layout vertical center>
+
+      <div id="headers">
+        <span id="owner">owner</span>
+        <span id="subject">subject</span>
+        <span id="tryJob" class="rightCol">try job</span>
+        <span id="cr" class="rightCol">CR</span>
+        <span id="v" class="rightCol">V</span>
+      </div>
+
+      <template repeat="{{query in queries}}">
+        <query-details
+          query="{{query}}">
+        </query-details>
+      </template>
+    </div>
+  </template>
+
+  <script src="queryList.js" type="text/javascript"></script>
+</polymer-element>

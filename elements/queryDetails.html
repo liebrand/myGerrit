@@ -1,0 +1,37 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="gerritRequest.html">
+<link rel="import" href="gerrit-cl.html">
+
+<polymer-element name="query-details" attributes="query cls">
+  <template>
+    <style>
+    :host {
+      display: block;
+      position: relative;
+      background-color: white;
+      padding: 20px;
+      width: 90%;
+      font-family: Arial;
+      font-size: 10pt;
+      font-weight: 300;
+    }
+    </style>
+
+
+    <gerrit-request id="ajax"
+      auto
+      api='/changes/?q='
+      query='{{query}}'
+      on-gerrit-response="{{gerritResponse}}"
+      handleAs="json">
+    </gerrit-request>
+
+    <div>{{query}}</div>
+    <template repeat="{{cl in cls}}">
+      <gerrit-cl cl="{{cl}}"></gerrit-cl>
+    </template>
+
+  </template>
+  <script src="queryDetails.js" type="text/javascript" charset="utf-8"></script>
+</polymer-element>

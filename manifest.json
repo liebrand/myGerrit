@@ -1,0 +1,10 @@
+{
+  "manifest_version": 2,
+  "name": "myGerrit",
+  "version": "0.0.0.1",
+  "content_security_policy": "default-src 'self'; connect-src https://*.google.com https://*.googlesource.com; style-src 'self' 'unsafe-inline' chrome-extension:;",
+  "permissions": [ "cookies", "storage", "http://*/*", "https://*/*" ],
+  "web_accessible_resources": [
+    "index.html"
+  ]
+}

@@ -1,0 +1,62 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<polymer-element name="gerrit-cl" attributes="cl tryJobResult maxCodeReviewScore maxVerifiedScore">
+  <template>
+    <style>
+    :host {
+      display: flex;
+      /*justify-content: space-between;*/
+
+      font-family: Arial;
+      font-size: 10pt;
+      border-bottom: 1px solid lightgray;
+      cursor: hand;
+    }
+    :host(:hover) {
+      background: lightyellow;
+    }
+    #owner {
+      color: blue;
+      flex: 2;
+    }
+    #subject {
+      flex: 10;
+    }
+    :host(:not(.read)) {
+      font-weight: bold;
+    }
+    :host(.read) {
+      font-weight: normal;
+    }
+    .rightCol {
+      width: 80px;
+    }
+    #tryJob {
+      color: gray;
+    }
+    #tryJob.success:after {
+      color: green;
+      content: "success";
+    }
+    #tryJob.failure:after {
+      color: red;
+      content: "failure";
+    }
+    </style>
+
+    <gerrit-request id="ajax"
+      auto
+      api='/changes/{{cl.id}}/detail'
+      on-gerrit-response="{{gerritResponse}}"
+      handleAs="json">
+    </gerrit-request>
+
+    <span id="owner">{{cl.owner.name}}</span>
+    <span id="subject" on-tap="{{clTapped}}">{{cl.subject}}</span>
+    <span id="tryJob" class='rightCol'></span>
+    <span id="cr" class='rightCol'>{{maxCodeReviewScore}}</span>
+    <span id="v" class='rightCol'>{{maxVerifiedScore}}</span>
+
+  </template>
+  <script src="gerrit-cl.js" type="text/javascript" charset="utf-8"></script>
+</polymer-element>
