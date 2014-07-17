@@ -10,9 +10,19 @@ Polymer('query-details', {
     this.fire('favorite-tap');
   },
   gerritResponse: function(evt, firedDetails, request) {
-    // Make a copy of the loaded data
-    this.cls = firedDetails.response.slice(0).sort(function(a, b) {
-      return (a.owner.name < b.owner.name) ? -1 : 1;
-    });
+    var res = firedDetails.response;
+    if (Object.prototype.toString.call(res) === '[object String]') {
+      if (res.indexOf('login') !== -1) {
+        // assume login issue
+        throw new Error('Not logged in to Gerrit ?');
+      } else {
+        throw new Error('unexpected Gerrit response');
+      }
+    } else {
+      // Make a copy of the loaded data
+      this.cls = res.slice(0).sort(function(a, b) {
+        return (a.owner.name < b.owner.name) ? -1 : 1;
+      });
+    }
   }
 });

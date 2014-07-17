@@ -15,7 +15,7 @@
       xhr.withCredentials = true;
       xhr.onerror = function(evt) {
         document.body.appendChild(document.createTextNode('ERROR'));
-        throw (this.status);
+        throw new Error(this.status);
       };
 
       // keep hold of this gerrit request element

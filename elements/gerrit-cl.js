@@ -17,12 +17,13 @@ Polymer('gerrit-cl', {
     // determine if the cl should be bold (/ unread)
     if (this.details.messages) {
       // check if last message was mine
+      var email = window.localStorage.getItem('email') || 'john@doe.com';
       var lastMessageIdx = this.details.messages.length - 1;
       var lastMessage = this.details.messages[lastMessageIdx];
       var lastMessageWasMe =
           (lastMessage && lastMessage.author &&
            lastMessage.author.email &&
-           lastMessage.author.email === 'jliebrand@google.com');
+           lastMessage.author.email === email);
 
       var notUpdated;
       var cachedUpdatedTimeStamp = window.localStorage.getItem(this.details._number);
@@ -53,7 +54,8 @@ Polymer('gerrit-cl', {
 
     // set code review stats
     var score;
-    if (this.details.labels["Code-Review"].all) {
+    if (this.details.labels["Code-Review"] &&
+        this.details.labels["Code-Review"].all) {
       var reviewers = this.details.labels["Code-Review"].all;
       score = Math.max.apply(
           Math,reviewers.map(function(o){return o.value || 0;}))
@@ -61,7 +63,8 @@ Polymer('gerrit-cl', {
       this.maxCodeReviewScore =
           ((score > 0) ? '+' : (score < 0) ? '-' : '') + score;
     }
-    if (this.details.labels["Verified"].all) {
+    if (this.details.labels["Verified"] &&
+        this.details.labels["Verified"].all) {
       var verifiers = this.details.labels["Verified"].all;
       score = Math.max.apply(
           Math,verifiers.map(function(o){return o.value || 0;}))
