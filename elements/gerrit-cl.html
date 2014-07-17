@@ -1,6 +1,6 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
 
-<polymer-element name="gerrit-cl" attributes="cl tryJobResult maxCodeReviewScore maxVerifiedScore">
+<polymer-element name="gerrit-cl" attributes="cl diffstat tryJobResult maxCodeReviewScore maxVerifiedScore">
   <template>
     <style>
     :host {
@@ -29,6 +29,7 @@
     }
     .rightCol {
       width: 80px;
+      text-align: right;
     }
     #tryJob {
       color: gray;
@@ -52,6 +53,7 @@
 
     <span id="owner">{{cl.owner.name}}</span>
     <span id="subject" on-tap="{{clTapped}}">{{cl.subject}}</span>
+    <span id="diffstat" class='rightCol'>{{diffstat}}</span>
     <span id="tryJob" class='rightCol'></span>
     <span id="cr" class='rightCol'>{{maxCodeReviewScore}}</span>
     <span id="v" class='rightCol'>{{maxVerifiedScore}}</span>

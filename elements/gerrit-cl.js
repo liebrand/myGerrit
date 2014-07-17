@@ -61,6 +61,10 @@ Polymer('gerrit-cl', {
         }
       }
 
+      // get the diffstat
+      var totalChanges = this.details.deletions + this.details.insertions;
+      this.diffstat = totalChanges;
+
       // set code review stats
       var score;
       if (this.details.labels["Code-Review"] &&
