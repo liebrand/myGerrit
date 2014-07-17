@@ -1,5 +1,4 @@
 (function() {
-  REVIEW_SERVER = 'https://quickoffice-internal-review.googlesource.com',
 
   Polymer('gerrit-request', {
 
@@ -43,11 +42,16 @@
           }
         }
       }
-      var url = REVIEW_SERVER + this.api + this.query;
 
-      xhr.open(this.type, url, true);
-      xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-      xhr.send();
+      chrome.storage.sync.get({
+        server: 'http://my.gerrit.server.com'
+      }, function(items) {
+        var url = items.server + this.api + this.query;
+
+        xhr.open(this.type, url, true);
+        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+        xhr.send();
+      }.bind(this));
     }
   });
 
