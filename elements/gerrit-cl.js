@@ -26,14 +26,23 @@ Polymer('gerrit-cl', {
 
       // determine if the cl should be bold (/ unread)
       if (this.details.messages) {
-        // check if last message was mine
+        // check if last message was mine (and ignore try jobs)
+        function msgIsTryJob_(msgs, idx) {
+          var lastMessage = msgs[lastMessageIdx];
+          return (lastMessage && lastMessage.author &&
+              lastMessage.author.email === 'quickoffice-bamboo@google.com');
+        }
+
         var lastMessageIdx = this.details.messages.length - 1;
+        while (lastMessageIdx > 0 && msgIsTryJob_(this.details.messages, lastMessageIdx)) {
+          lastMessageIdx--;
+        }
+
         var lastMessage = this.details.messages[lastMessageIdx];
         var lastMessageWasMe =
             (lastMessage && lastMessage.author &&
              lastMessage.author.email &&
              lastMessage.author.email === items.email);
-
         var notUpdated;
         var cachedUpdatedTimeStamp = window.localStorage.getItem(this.details._number);
         if (cachedUpdatedTimeStamp) {
@@ -113,20 +122,38 @@ Polymer('gerrit-cl', {
       if (this.details.labels["Code-Review"] &&
           this.details.labels["Code-Review"].all) {
         var reviewers = this.details.labels["Code-Review"].all;
-        score = Math.max.apply(
+        // show the minimume score if it is under zero; else show the
+        // max score
+        score = Math.min.apply(
             Math,reviewers.map(function(o){return o.value || 0;}))
+        if (score === 0) {
+          score = Math.max.apply(
+              Math,reviewers.map(function(o){return o.value || 0;}))
+        }
 
+        if (score < 0) {
+          this.classList.add('failedReview');
+        }
         this.maxCodeReviewScore =
-            ((score > 0) ? '+' : (score < 0) ? '-' : '') + score;
+            ((score > 0) ? '+' : '') + score;
       }
       if (this.details.labels["Verified"] &&
           this.details.labels["Verified"].all) {
         var verifiers = this.details.labels["Verified"].all;
-        score = Math.max.apply(
+        // show the minimume score if it is under zero; else show the
+        // max score
+        score = Math.min.apply(
             Math,verifiers.map(function(o){return o.value || 0;}))
+        if (score === 0) {
+          score = Math.max.apply(
+              Math,verifiers.map(function(o){return o.value || 0;}))
+        }
 
+        if (score < 0) {
+          this.classList.add('failedReview');
+        }
         this.maxVerifiedScore =
-            ((score > 0) ? '+' : (score < 0) ? '-' : '') + score;
+            ((score > 0) ? '+' : '') + score;
       }
 
     }.bind(this));
