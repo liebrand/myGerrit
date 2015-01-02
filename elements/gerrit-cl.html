@@ -1,3 +1,6 @@
+
+<script src="../bower_components/moment/moment.js" type="text/javascript" charset="utf-8"></script>
+
 <link rel="import" href="../bower_components/polymer/polymer.html">
 
 <polymer-element name="gerrit-cl" attributes="cl diffstat tryJobResult maxCodeReviewScore maxVerifiedScore">
@@ -14,7 +17,7 @@
     :host(:hover) {
       background: lightyellow;
     }
-    #owner {
+    #age {
       color: blue;
       flex: 2;
     }
@@ -67,7 +70,7 @@
     </gerrit-request>
 
     <span id="id" class="leftCol">{{cl._number}}</span>
-    <span id="owner">{{cl.owner.name}}</span>
+    <span id="age">{{age}}</span>
     <span id="subject" on-tap="{{clTapped}}">{{cl.subject}}</span>
     <span id="diffstat" class='rightCol'>{{diffstat}}</span>
     <span id="tryJob" class='rightCol'></span>

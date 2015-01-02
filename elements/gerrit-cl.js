@@ -117,6 +117,9 @@ Polymer('gerrit-cl', {
       var totalChanges = this.details.deletions + this.details.insertions;
       this.diffstat = totalChanges;
 
+      // set age
+      this.age = moment(new Date(this.details.created)).fromNow();
+
       // set code review stats
       var score;
       if (this.details.labels["Code-Review"] &&

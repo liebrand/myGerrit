@@ -21,7 +21,10 @@ Polymer('query-details', {
     } else {
       // Make a copy of the loaded data
       this.cls = res.slice(0).sort(function(a, b) {
-        return (a.owner.name < b.owner.name) ? -1 : 1;
+        var aCreated = new Date(a.created);
+        var bCreated = new Date(b.created);
+
+        return (aCreated < bCreated) ? -1 : 1;
       });
     }
   }
