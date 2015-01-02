@@ -1,0 +1,20 @@
+{
+  "name": "myGerrit",
+  "version": "0.0.0",
+  "homepage": "https://github.com/liebrand/myGerrit",
+  "authors": [
+    "Jelte Liebrand <jliebrand@google.com>"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "core-component-page": "Polymer/core-component-page#>=0.3.0 <1.0.0"
+  }
+}
