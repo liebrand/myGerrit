@@ -1,165 +1,296 @@
+(function() {
+  'use strict';
 
-Polymer('gerrit-cl', {
+  Polymer('gerrit-cl', {
 
-  clTapped: function() {
-    chrome.storage.sync.get({
-      server: 'http://my.gerrit.server.com'
-    }, function(items) {
-      var openUrl = items.server + '/#/c/';
-      var clNumber = this.details._number;
-      window.open(openUrl + clNumber);
-      // TODO(jliebrand): we never remove these items from local
-      // storage... we should have some check to make sure we clear
-      // this out if/when the CLs get closed
-      window.localStorage.setItem(this.details._number, this.details.updated);
-      window.location.reload();
-    }.bind(this));
-  },
+    clTapped: function() {
+      chrome.storage.sync.get({
+        server: 'http://my.gerrit.server.com'
+      }, function(items) {
+        var openUrl = items.server + '/#/c/';
+        var clNumber = this.details._number;
+        window.open(openUrl + clNumber);
+        // TODO(jliebrand): we never remove these items from local
+        // storage... we should have some check to make sure we clear
+        // this out if/when the CLs get closed
+        window.localStorage.setItem(this.details._number, this.details.updated);
+        window.location.reload();
+      }.bind(this));
+    },
 
-  gerritResponse: function(evt, details) {
-    this.details = details.response;
-    var i;
+    // TODO(jliebrand): OMG this function REALLY needs to be split up in to
+    // readable code!
+    gerritResponse: function(evt, details) {
+      this.details = details.response;
+      var i;
 
-    chrome.storage.sync.get({
-      email: 'john@doe.com'
-    }, function(items) {
+      chrome.storage.sync.get({
+        email: 'john@doe.com'
+      }, function(extenionOptions) {
 
-      // determine if the cl should be bold (/ unread)
-      if (this.details.messages) {
-        // check if last message was mine (and ignore try jobs)
-        function msgIsTryJob_(msgs, idx) {
-          var lastMessage = msgs[lastMessageIdx];
-          return (lastMessage && lastMessage.author &&
-              lastMessage.author.email === 'quickoffice-bamboo@google.com');
-        }
+        this.setNewStatus_(extenionOptions);
+        this.setReadStatus_(extenionOptions);
+        this.setTryJobStatus_();
+        this.setAge_();
+        this.setDiffStat_();
+        this.setScores_();
 
-        var lastMessageIdx = this.details.messages.length - 1;
-        while (lastMessageIdx > 0 && msgIsTryJob_(this.details.messages, lastMessageIdx)) {
-          lastMessageIdx--;
-        }
+      }.bind(this));
 
-        var lastMessage = this.details.messages[lastMessageIdx];
-        var lastMessageWasMe =
-            (lastMessage && lastMessage.author &&
-             lastMessage.author.email &&
-             lastMessage.author.email === items.email);
-        var notUpdated;
-        var cachedUpdatedTimeStamp = window.localStorage.getItem(this.details._number);
-        if (cachedUpdatedTimeStamp) {
-          notUpdated = (cachedUpdatedTimeStamp === this.details.updated);
-        }
-        if (lastMessageWasMe || notUpdated) {
-          // debugger;
-          this.classList.add('read');
-        } else {
-          this.classList.remove('read');
-        }
+    },
 
-        // check if we have any try job success/failures
-        // and also check if I have made any comments at all
-        var everCommentedByMe = false;
-        var tryJobCss;
-        var tryJobsPatchsets = {};
+    // ----------------------------- PRIVATE -----------------------------
 
-        for (i = 0; i < this.details.messages.length; i++) {
-          var msg = this.details.messages[i];
+    /**
+     * Sets the CL to new (css class 'new') if it has not got any comments from
+     * this user
+     *
+     * @param {Object} extenionOptions the settings for this extension
+     */
+    setNewStatus_: function(extenionOptions) {
+      if (this.everCommentedByMe_(extenionOptions)) {
+        this.classList.add('new');
+      }
+    },
 
-          everCommentedByMe = everCommentedByMe ||
-              (msg && msg.author &&
-               msg.author.email &&
-               msg.author.email === items.email);
 
-          var matches = msg.message.toLowerCase().match(/patch set (\d+)(.|[\r\n])*!tryjob/);
+    /**
+     * Sets this CL to bold (css class 'read') if either there has been a new
+     * comment since the last time we opened it, or if the last comment was made
+     * by this user, which could have been done outside of myGerrit opening it.
+     *
+     * @param {Object} extenionOptions the settings for this extension
+     */
+    setReadStatus_: function(extenionOptions) {
+      if (this.lastCommentByMe_(extenionOptions) || !this.clHasBeenUpdated()) {
+        this.classList.add('read');
+      } else {
+        this.classList.remove('read');
+      }
+    },
 
-          if (matches) {
-            // new request for patch set; clear old gathered data
-            tryJobsPatchsets[matches[1]] = {};
-          }
 
-          matches = msg.message.toLowerCase().match(/patch set (\d+)(.|[\r\n])*try job has (\S*).*:\s*(.*)/);
-          if (matches) {
-            var patchSet = matches[1];
-            var legacyTryJob = matches[3] === 'finished';
-            var result = matches[4];
-            tryJobsPatchsets[patchSet] = tryJobsPatchsets[patchSet] || {};
-            tryJobsPatchsets[patchSet].legacy = legacyTryJob;
-            tryJobsPatchsets[patchSet][result] = ++tryJobsPatchsets[patchSet][result] || 1;
-          }
-        }
+    /**
+     * Sets the age of this CL
+     */
+    setAge_: function() {
+      this.age = moment(new Date(this.details.created)).fromNow();
+    },
 
-        // TODO(jliebrand): HACK until try jobs are better reported
-        // in gerrit; for now HARDCODE the need for 8 success messages
-        // on the highest patchset.
-        var patchSets = Object.keys(tryJobsPatchsets).sort(function(a,b) {return a-b;});
-        if (patchSets.length > 0) {
-          var highestPatchset = patchSets.pop();
-          var tryJob = tryJobsPatchsets[highestPatchset];
 
-          if (tryJob.legacy) {
-            tryJobCss = (tryJob.success === 1) ?
-              'success' : 'failure';
-          }
-          else {
-            tryJobCss = (tryJob.success === 8) ?
-              'success' : (tryJob.failure || tryJob.exception) ? 'failure' : 'pending';
-          }
-        }
+    /**
+     * Sets the diffstat for this CL
+     */
+    setDiffStat_: function() {
+      var totalChanges = this.details.deletions + this.details.insertions;
+      this.diffstat = totalChanges;
+    },
 
-        if (tryJobCss) {
-          this.$.tryJob.classList.add(tryJobCss);
-        }
-        if (!everCommentedByMe) {
-          this.classList.add('new');
+
+    /**
+     * Sets the code review scores (both review and verifiers)
+     */
+    setScores_: function() {
+      this.maxCodeReviewScore = this.calcReviewScore_();
+      this.maxVerifiedScore = this.calcVerifierScore_();
+    },
+
+
+    /**
+     * Determines the status of the last try job
+     */
+    setTryJobStatus_: function() {
+      // TODO(jliebrand): HACK until try jobs are better reported
+      // in gerrit; for now HARDCODE the need for 8 success messages
+      // on the highest patchset.
+      var matches;
+      var comments = this.getComments_();
+      var tryJobResponses = comments.filter(this.commentIsTryJobResponse_);
+
+      // find the latest patchset for which a tryjob ran
+      var latestPatchset = -1;
+      for (var i = 0; i < tryJobResponses.length; i++) {
+        var response = tryJobResponses[i].message.toLowerCase();
+        matches = response.match(/patch set (\d+)/);
+        if (matches) {
+          var patchset = parseInt(matches[1], 10);
+          latestPatchset = Math.max(latestPatchset, patchset);
         }
       }
 
-      // get the diffstat
-      var totalChanges = this.details.deletions + this.details.insertions;
-      this.diffstat = totalChanges;
+      // get all responses for that latest patchset only
+      var latestResponses = tryJobResponses.filter(function(response) {
+        var msg = response.message.toLowerCase();
+        matches = msg.match(/patch set (\d+)/);
+        return (matches && parseInt(matches[1], 10) === latestPatchset);
+      });
 
-      // set age
-      this.age = moment(new Date(this.details.created)).fromNow();
+      // now filter out the actual results from the responses
+      var results = latestResponses.map(function(response) {
+        var msg = response.message.toLowerCase();
+        matches = msg.match(/patch set \d+(.|[\r\n])*try job has completed on .*:\s*(.*)/);
+        return (matches && matches[2]);
+      });
+      // remove null and undefined results from our array
+      results = results.filter(function(x) {return x;});
 
-      // set code review stats
-      var score;
+      // we could have run more than one try job on this patchset, in which case
+      // we have more than 8 results...
+      if (results.length > 8) {
+        this.$.tryJob.classList.add('confused');
+      } else {
+        if (results.indexOf('failure') !== -1 || results.indexOf('exception') !== -1) {
+          this.$.tryJob.classList.add('failure');
+        } else {
+          if (results.length === 8) {
+            this.$.tryJob.classList.add('success');
+          } else if (results.length > 0) {
+            this.$.tryJob.classList.add('pending');
+          }
+        }
+      }
+    },
+
+
+    /**
+     * @param {Object} extenionOptions the settings for this extension
+     * @returns {boolean} true if this user has ever made a comment on this cl
+     */
+    everCommentedByMe_: function(extenionOptions) {
+      var commentedByMe = false;
+      var comments = this.getComments_();
+      for (var i = 0; i < comments.length; i++) {
+        var comment = comments[i];
+
+        if (comment && comment.author && comment.author.email &&
+             comment.author.email === extenionOptions.email) {
+          commentedByMe = true;
+          break;
+        }
+      }
+      return commentedByMe;
+    },
+
+
+    /**
+     * @return {boolean} returns true if the CL has been updated since it was last
+     *     opened from within myGerrit
+     */
+    clHasBeenUpdated: function() {
+      var updated = true;
+      var cachedUpdatedTimeStamp = localStorage.getItem(this.details._number);
+      if (cachedUpdatedTimeStamp) {
+        updated = (cachedUpdatedTimeStamp !== this.details.updated);
+      }
+      return updated;
+    },
+
+
+    /**
+     * @param {Object} extenionOptions the settings for this extension
+     * @return {boolean} returns true if the last comment was made by this user
+     */
+    lastCommentByMe_: function(extenionOptions) {
+      var comments = this.getComments_();
+
+      // find the last "real" comment (eg ignore tryJob status responses)
+      var lastCommentIndex = comments.length - 1;
+      var comment = comments[lastCommentIndex];
+      while (lastCommentIndex > 0 && this.commentIsTryJobResponse_(comment)) {
+        lastCommentIndex--;
+      }
+
+      var lastComment = this.details.messages[lastCommentIndex];
+      var lastCommentWasByMe = (lastComment && lastComment.author &&
+           lastComment.author.email &&
+           lastComment.author.email === extenionOptions.email);
+      return lastCommentWasByMe;
+    },
+
+
+    /**
+     * @return the calculated score for an array of reviewers/verifiers. If any
+     *     of them gave a negative score, that will be reported. Otherwise the
+     *     the max score is returned
+     *
+     * @param {Array} reviewers an array of reviewers
+     */
+    calcScore_: function(reviewers) {
+      var getValue = function(o) {return o.value || 0;}
+
+      // check min score
+      var score = Math.min.apply(Math, reviewers.map(getValue));
+
+      // if no negative score, then get max score
+      if (score === 0) {
+        score = Math.max.apply(Math, reviewers.map(getValue));
+      }
+
+      if (score < 0) {
+        this.classList.add('failedReview');
+      }
+      return score;
+    },
+
+
+    /**
+     * @return {String} Calculate and return the reviewer score
+     */
+    calcReviewScore_: function() {
       if (this.details.labels["Code-Review"] &&
           this.details.labels["Code-Review"].all) {
         var reviewers = this.details.labels["Code-Review"].all;
         // show the minimume score if it is under zero; else show the
         // max score
-        score = Math.min.apply(
-            Math,reviewers.map(function(o){return o.value || 0;}))
-        if (score === 0) {
-          score = Math.max.apply(
-              Math,reviewers.map(function(o){return o.value || 0;}))
-        }
+        var score = this.calcScore_(reviewers);
 
-        if (score < 0) {
-          this.classList.add('failedReview');
-        }
-        this.maxCodeReviewScore =
-            ((score > 0) ? '+' : '') + score;
+        return this.stringifyScore_(score);
       }
+    },
+
+
+    /**
+     * @return {String} Calculate and return the verifier score
+     */
+    calcVerifierScore_: function() {
       if (this.details.labels["Verified"] &&
           this.details.labels["Verified"].all) {
         var verifiers = this.details.labels["Verified"].all;
         // show the minimume score if it is under zero; else show the
         // max score
-        score = Math.min.apply(
-            Math,verifiers.map(function(o){return o.value || 0;}))
-        if (score === 0) {
-          score = Math.max.apply(
-              Math,verifiers.map(function(o){return o.value || 0;}))
-        }
+        var score = this.calcScore_(verifiers);
 
-        if (score < 0) {
-          this.classList.add('failedReview');
-        }
-        this.maxVerifiedScore =
-            ((score > 0) ? '+' : '') + score;
+        return this.stringifyScore_(score);
       }
+    },
 
-    }.bind(this));
 
-  }
-});
+    /**
+     * @return {String} stringify a score (add + sign if needed)
+     */
+    stringifyScore_: function(score) {
+      return ((score > 0) ? '+' : '') + score;
+    },
+
+
+    /**
+     * @returns {Array} returns an array of all the comments on this CL
+     */
+    getComments_: function() {
+      return this.details.messages || [];
+    },
+
+
+    /**
+     * @param {Object} comment the comment to inspect
+     * @returns {boolean} returns true if the given comment is a tryJob response
+     */
+    commentIsTryJobResponse_: function(comment) {
+      return (comment && comment.author &&
+          comment.author.email === 'quickoffice-bamboo@google.com');
+    }
+
+  });
+
+})();
+
