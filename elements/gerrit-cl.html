@@ -64,6 +64,14 @@
       color: darkyellow;
       content: "confused";
     }
+    #wipStatus.wip {
+      background: yellow;
+      flex: 3;
+      text-align: center;
+    }
+    #wipStatus.wip:after {
+      content: 'WORK IN PROGRESS';
+    }
     </style>
 
     <gerrit-request id="ajax"
@@ -76,6 +84,7 @@
     <span id="id" class="leftCol">{{cl._number}}</span>
     <span id="age">{{age}}</span>
     <span id="subject" on-tap="{{clTapped}}">{{cl.subject}}</span>
+    <span id="wipStatus" class='rightCol'></span>
     <span id="diffstat" class='rightCol'>{{diffstat}}</span>
     <span id="tryJob" class='rightCol'></span>
     <span id="cr" class='rightCol'>{{maxCodeReviewScore}}</span>

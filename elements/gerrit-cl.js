@@ -33,7 +33,8 @@
         this.setTryJobStatus_();
         this.setAge_();
         this.setDiffStat_();
-        this.setScores_();
+        this.setScores_(extenionOptions);
+        this.hideIfWIP_();
 
       }.bind(this));
 
@@ -89,9 +90,10 @@
 
     /**
      * Sets the code review scores (both review and verifiers)
+     * @param {Object} extenionOptions the settings for this extension
      */
-    setScores_: function() {
-      this.maxCodeReviewScore = this.calcReviewScore_();
+    setScores_: function(extenionOptions) {
+      this.maxCodeReviewScore = this.calcReviewScore_(extenionOptions);
       this.maxVerifiedScore = this.calcVerifierScore_();
     },
 
@@ -151,6 +153,20 @@
       }
     },
 
+
+    /**
+     * Hide this CL if the author has not yet added any reviewers to it; which
+     * means this is still a Work In Progress CL...
+     */
+    hideIfWIP_: function() {
+      var reviewers = this.getReviewers_();
+      // this.style.display = (reviewers.length === 0) ? 'none' : 'block';
+      if (reviewers.length === 0) {
+        this.$.wipStatus.classList.add('wip');
+      } else {
+        this.$.wipStatus.classList.remove('wip');
+      }
+    },
 
     /**
      * @param {Object} extenionOptions the settings for this extension
@@ -234,18 +250,16 @@
 
 
     /**
+     * @param {Object} extenionOptions the settings for this extension
      * @return {String} Calculate and return the reviewer score
      */
-    calcReviewScore_: function() {
-      if (this.details.labels["Code-Review"] &&
-          this.details.labels["Code-Review"].all) {
-        var reviewers = this.details.labels["Code-Review"].all;
-        // show the minimume score if it is under zero; else show the
-        // max score
-        var score = this.calcScore_(reviewers);
+    calcReviewScore_: function(extenionOptions) {
+      var reviewers = this.getReviewers_(extenionOptions);
+      // show the minimume score if it is under zero; else show the
+      // max score
+      var score = this.calcScore_(reviewers);
 
-        return this.stringifyScore_(score);
-      }
+      return this.stringifyScore_(score);
     },
 
 
@@ -264,6 +278,22 @@
       }
     },
 
+
+    /**
+     * @return {Array} return an array of all the reviewers for this CL; note
+     *     it will strip the author and quickoffice-bamboo users from the array
+     */
+    getReviewers_: function() {
+      var reviewers = [];
+      if (this.details.labels["Code-Review"] &&
+          this.details.labels["Code-Review"].all) {
+        reviewers = this.details.labels["Code-Review"].all;
+      }
+      return reviewers.filter(function(person) {
+        return (person.email !== this.details.owner.email &&
+            person.name.indexOf('quickoffice-bamboo') === -1);
+      }, this);
+    },
 
     /**
      * @return {String} stringify a score (add + sign if needed)
